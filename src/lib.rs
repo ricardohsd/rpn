@@ -23,31 +23,31 @@ impl fmt::Display for CalcError {
 }
 
 pub struct Calculator {
-    stack: Vec<i64>,
+    stack: Vec<f64>,
 }
 
 impl Calculator {
-    pub fn run(expression: &str) -> Result<i64, CalcError> {
+    pub fn run(expression: &str) -> Result<f64, CalcError> {
         let mut calc = Calculator { stack: Vec::new() };
 
         for e in expression.split_whitespace() {
             let token = e.trim();
 
             if OPERATORS.contains(&token) {
-                let b: i64 = match calc.stack.pop() {
+                let b: f64 = match calc.stack.pop() {
                     Some(i) => i,
                     _ => return Err(CalcError::InvalidRightSide),
                 };
-                let a: i64 = match calc.stack.pop() {
+                let a: f64 = match calc.stack.pop() {
                     Some(i) => i,
                     _ => return Err(CalcError::InvalidLeftSide),
                 };
 
-                let result: i64 = Calculator::execute(token, a, b);
+                let result: f64 = Calculator::execute(token, a, b);
 
                 calc.stack.push(result);
             } else {
-                match token.parse::<i64>() {
+                match token.parse::<f64>() {
                     Ok(n) => calc.stack.push(n),
                     Err(_) => return Err(CalcError::InvalidOperator),
                 }
@@ -59,12 +59,13 @@ impl Calculator {
         }
 
         match calc.stack.pop() {
+            Some(i) if i.is_infinite() || i.is_nan() => Err(CalcError::EvaluationError),
             Some(i) => return Ok(i),
             _ => return Err(CalcError::EvaluationError),
         }
     }
 
-    fn execute(token: &str, a: i64, b: i64) -> i64 {
+    fn execute(token: &str, a: f64, b: f64) -> f64 {
         match token {
             "+" => a + b,
             "-" => a - b,
@@ -79,7 +80,7 @@ impl Calculator {
 mod tests {
     use super::*;
 
-    fn assert_expression(expression: &str, expected_result: i64) {
+    fn assert_expression(expression: &str, expected_result: f64) {
         let result = Calculator::run(expression);
 
         match result {
@@ -90,33 +91,38 @@ mod tests {
 
     #[test]
     fn valid_expressions() {
-        assert_expression("3 4 +", 7);
-        assert_expression("3 4 +", 7);
-        assert_expression("3 4 + 2 *", 14);
-        assert_expression("3 5 * 3 /", 5);
-        assert_expression("15 7 1 1 + - / 3 * 2 1 1 + + -", 5);
+        assert_expression("3 4 +", 7.0);
+        assert_expression("-3.0 4 +", 1.0);
+        assert_expression("3.5 1.3 +", 4.8);
+        assert_expression("3 4 + 2 *", 14.0);
+        assert_expression("3 5 * 3 /", 5.0);
+        assert_expression("15 7 1 1 + - / 3 * 2 1 1 + + -", 5.0);
     }
 
     #[test]
     fn invalid_expressions() {
         let result = Calculator::run("3 + 4");
-
         match result {
             Ok(_) => assert!(false, "expression should have failed"),
             Err(e) => assert_eq!(e, CalcError::InvalidLeftSide),
         }
 
         let result = Calculator::run("3 4 + 2");
-
         match result {
             Ok(_) => assert!(false, "expression should have failed"),
             Err(e) => assert_eq!(e, CalcError::EvaluationError),
         }
-    }
 
-    #[test]
-    #[should_panic]
-    fn panic_division_by_zero() {
-        let _result = Calculator::run("5 0 /");
+        let result = Calculator::run("3, 4 +");
+        match result {
+            Ok(_) => assert!(false, "expression should have failed"),
+            Err(e) => assert_eq!(e, CalcError::InvalidOperator),
+        }
+
+        let result = Calculator::run("5 0 /");
+        match result {
+            Ok(_) => assert!(false, "division by zero, expression should have failed"),
+            Err(e) => assert_eq!(e, CalcError::EvaluationError),
+        }
     }
 }
