@@ -92,6 +92,9 @@ mod tests {
     fn valid_expressions() {
         assert_expression("3 4 +", 7);
         assert_expression("3 4 +", 7);
+        assert_expression("3 4 + 2 *", 14);
+        assert_expression("3 5 * 3 /", 5);
+        assert_expression("15 7 1 1 + - / 3 * 2 1 1 + + -", 5);
     }
 
     #[test]
