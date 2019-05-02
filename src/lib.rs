@@ -113,4 +113,10 @@ mod tests {
             Err(e) => assert_eq!(e, CalcError::EvaluationError),
         }
     }
+
+    #[test]
+    #[should_panic]
+    fn panic_division_by_zero() {
+        let _result = Calculator::run("5 0 /");
+    }
 }
